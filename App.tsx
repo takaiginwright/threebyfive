@@ -26,7 +26,8 @@ const App: React.FC = () => {
   const [editingCard, setEditingCard] = useState<IdeaCard | null>(null);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  // FIX: Store category ID instead of name for reliable filtering
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('all');
   const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
   const [isViewingArchive, setIsViewingArchive] = useState(false);
   const [isQuestionsPanelOpen, setIsQuestionsPanelOpen] = useState(false);
@@ -299,8 +300,11 @@ const App: React.FC = () => {
       }
   }
 
-  // FIX: Filter by categoryId (system + custom)
+  // FIX: Filter by categoryId (ID-based, works for system + custom)
   const filteredCards = useMemo(() => {
+    // DEBUG (toggle): Set to true to see filter debug logs
+    const DEBUG = true;
+
     const filtered = cards.filter(card => {
       // Archive Filter Logic
       if (isViewingArchive) {
@@ -320,43 +324,32 @@ const App: React.FC = () => {
 
       if (!matchesSearch) return false;
 
-      // FIX: Filter by categoryId (system + custom)
-      if (selectedCategory === 'All') {
-          return true; // ALL = show all cards, no filtering
+      // FIX: Filter by categoryId - simple ID comparison
+      if (selectedCategoryId === 'all') {
+          return true; // Show all cards
       } else {
-          // Match by categoryId for new cards or tags for backward compat
-          if (card.categoryId) {
-            // New format: match by ID or label
-            const allCategories = getCategoriesForProject(card.projectId);
-            const selectedCat = allCategories.find(
-              c => c.name === selectedCategory || c.id === selectedCategory
-            );
-            return selectedCat && card.categoryId === selectedCat.id;
-          } else {
-            // Legacy format: check if card has tags in this category
-            const tagsInCategory = card.tags[selectedCategory as CardCategory];
-            return tagsInCategory && tagsInCategory.length > 0;
-          }
+          // Direct ID match (no name lookups, no enum conversions)
+          return card.categoryId === selectedCategoryId;
       }
     });
 
-    // DEBUG: Lightweight debug logging (can be removed after verification)
-    if (selectedCategory !== 'All' && filtered.length === 0 && cards.length > 0) {
+    // DEBUG (toggle): Log filter state when filtering by category
+    if (DEBUG && selectedCategoryId !== 'all') {
       console.log('[Category Filter Debug]', {
-        selectedCategory,
+        selectedCategoryId,
         totalCards: cards.length,
         filteredCards: filtered.length,
-        sampleCardCategories: cards.slice(0, 3).map(c => ({
+        sampleCards: cards.slice(0, 3).map(c => ({
           id: c.id.slice(0, 8),
+          title: c.title?.slice(0, 20),
           categoryId: c.categoryId,
-          categoryLabel: c.categoryLabel,
-          hasTags: Object.keys(c.tags).length > 0
+          categoryLabel: c.categoryLabel
         }))
       });
     }
 
     return filtered;
-  }, [cards, searchQuery, selectedCategory, selectedProjectId, isViewingArchive]);
+  }, [cards, searchQuery, selectedCategoryId, selectedProjectId, isViewingArchive]);
   
   const filteredSets = useMemo(() => {
       if (selectedProjectId === 'all') return sets;
@@ -735,28 +728,32 @@ const App: React.FC = () => {
 
                 <div className="flex flex-wrap items-center gap-2 px-1">
                     <button
-                        onClick={() => setSelectedCategory('All')}
-                        className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-widest transition-all duration-300 border ${selectedCategory === 'All' ? 'bg-stone-900 dark:bg-white text-white dark:text-black border-stone-900 dark:border-white shadow-md transform scale-105' : 'bg-white dark:bg-night-surface text-stone-500 dark:text-stone-400 border-transparent hover:bg-stone-100 dark:hover:bg-white/5 hover:text-stone-800 dark:hover:text-stone-200'}`}
+                        onClick={() => setSelectedCategoryId('all')}
+                        className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-widest transition-all duration-300 border ${selectedCategoryId === 'all' ? 'bg-stone-900 dark:bg-white text-white dark:text-black border-stone-900 dark:border-white shadow-md transform scale-105' : 'bg-white dark:bg-night-surface text-stone-500 dark:text-stone-400 border-transparent hover:bg-stone-100 dark:hover:bg-white/5 hover:text-stone-800 dark:hover:text-stone-200'}`}
                     >
                         All
                     </button>
-                    {ALL_CATEGORIES.map(cat => (
-                        <button
-                            key={cat}
-                            onClick={() => setSelectedCategory(cat)}
-                            className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-widest transition-all duration-300 border ${selectedCategory === cat ? 'bg-stone-900 dark:bg-white text-white dark:text-black border-stone-900 dark:border-white shadow-md transform scale-105' : 'bg-white dark:bg-night-surface text-stone-500 dark:text-stone-400 border-transparent hover:bg-stone-100 dark:hover:bg-white/5 hover:text-stone-800 dark:hover:text-stone-200'}`}
-                        >
-                            {cat}
-                        </button>
-                    ))}
+                    {/* FIX: Convert enum values to category IDs for filtering */}
+                    {ALL_CATEGORIES.map(cat => {
+                        const categoryId = cat.toLowerCase();
+                        return (
+                            <button
+                                key={cat}
+                                onClick={() => setSelectedCategoryId(categoryId)}
+                                className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-widest transition-all duration-300 border ${selectedCategoryId === categoryId ? 'bg-stone-900 dark:bg-white text-white dark:text-black border-stone-900 dark:border-white shadow-md transform scale-105' : 'bg-white dark:bg-night-surface text-stone-500 dark:text-stone-400 border-transparent hover:bg-stone-100 dark:hover:bg-white/5 hover:text-stone-800 dark:hover:text-stone-200'}`}
+                            >
+                                {cat}
+                            </button>
+                        );
+                    })}
 
-                    {/* NEW: More dropdown for custom categories */}
+                    {/* FIX: More dropdown for custom categories (using IDs) */}
                     {customCategories.length > 0 && (
                         <div ref={moreDropdownRef} className="relative">
                             <button
                                 onClick={() => setIsMoreDropdownOpen(!isMoreDropdownOpen)}
                                 className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-widest transition-all duration-300 border flex items-center gap-1 ${
-                                    customCategories.some(cat => cat.name === selectedCategory)
+                                    customCategories.some(cat => cat.id === selectedCategoryId)
                                         ? 'bg-stone-900 dark:bg-white text-white dark:text-black border-stone-900 dark:border-white shadow-md transform scale-105'
                                         : 'bg-white dark:bg-night-surface text-stone-500 dark:text-stone-400 border-transparent hover:bg-stone-100 dark:hover:bg-white/5 hover:text-stone-800 dark:hover:text-stone-200'
                                 }`}
@@ -771,11 +768,11 @@ const App: React.FC = () => {
                                         <button
                                             key={cat.id}
                                             onClick={() => {
-                                                setSelectedCategory(cat.name);
+                                                setSelectedCategoryId(cat.id);
                                                 setIsMoreDropdownOpen(false);
                                             }}
                                             className={`w-full text-left px-4 py-2 text-xs font-bold uppercase tracking-wide transition-colors ${
-                                                selectedCategory === cat.name
+                                                selectedCategoryId === cat.id
                                                     ? 'bg-stone-100 dark:bg-white/10 text-stone-900 dark:text-white'
                                                     : 'text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-white/5 hover:text-stone-900 dark:hover:text-white'
                                             }`}
