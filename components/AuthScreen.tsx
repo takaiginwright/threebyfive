@@ -80,22 +80,23 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
     <div className="min-h-screen bg-stone-100 flex items-center justify-center p-4">
         <div className="w-full max-w-md bg-white rounded-2xl shadow-cinematic p-8 md:p-12 transition-all duration-500">
             {renderLogo()}
-            
+
+            {/* FIX: Single-step welcome screen - decision point only, no forms */}
             {mode === 'welcome' && (
                 <div className="flex flex-col gap-4 animate-enter" style={{ animationDelay: '0.1s' }}>
-                    <button 
+                    <button
                         onClick={() => setMode('login')}
                         className="w-full py-3 bg-stone-900 text-white rounded-lg font-bold uppercase tracking-widest text-xs hover:bg-black transition-all hover:scale-[1.02] shadow-md"
                     >
                         Log In
                     </button>
-                    <button 
+                    <button
                         onClick={() => setMode('signup')}
                         className="w-full py-3 bg-white border border-stone-200 text-stone-900 rounded-lg font-bold uppercase tracking-widest text-xs hover:bg-stone-50 transition-all hover:border-stone-300"
                     >
                         Sign Up
                     </button>
-                    
+
                     <div className="relative my-4">
                         <div className="absolute inset-0 flex items-center">
                             <span className="w-full border-t border-stone-100"></span>
@@ -105,7 +106,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
                         </div>
                     </div>
 
-                    <button 
+                    <button
                         onClick={handleGuest}
                         className="w-full py-3 text-stone-500 rounded-lg font-medium text-sm hover:text-stone-900 hover:bg-stone-50 transition-colors flex items-center justify-center gap-2"
                     >
@@ -114,23 +115,37 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
                 </div>
             )}
 
+            {/* UX: Single-step login/signup forms - no intermediate confirmation screens */}
             {(mode === 'login' || mode === 'signup') && (
                 <form onSubmit={mode === 'login' ? handleLogin : handleSignup} className="flex flex-col gap-4 animate-enter">
-                    
+
+                    {/* UX: Clear heading to reinforce current step */}
+                    <div className="mb-2 -mt-2">
+                        <h2 className="text-lg font-medium text-stone-900 tracking-tight">
+                            {mode === 'login' ? 'Welcome back' : 'Create your account'}
+                        </h2>
+                        <p className="text-xs text-stone-500 mt-1">
+                            {mode === 'login'
+                                ? 'Enter your credentials to continue'
+                                : 'Get started with your storytelling journey'}
+                        </p>
+                    </div>
+
                     {error && <div className="text-red-500 text-xs text-center bg-red-50 p-2 rounded border border-red-100">{error}</div>}
 
                     <div className="space-y-4">
-                        <input 
-                            type="email" 
-                            placeholder="Email address" 
+                        <input
+                            type="email"
+                            placeholder="Email address"
                             required
+                            autoFocus
                             className="w-full px-4 py-3 rounded-lg bg-stone-50 border border-stone-200 focus:outline-none focus:ring-1 focus:ring-stone-400 text-sm placeholder-stone-400 transition-colors"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                         />
-                        <input 
-                            type="password" 
-                            placeholder="Password" 
+                        <input
+                            type="password"
+                            placeholder="Password"
                             required
                             className="w-full px-4 py-3 rounded-lg bg-stone-50 border border-stone-200 focus:outline-none focus:ring-1 focus:ring-stone-400 text-sm placeholder-stone-400 transition-colors"
                             value={password}
@@ -138,26 +153,38 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
                         />
                     </div>
 
-                    <button 
+                    {/* UX: Primary action button with clear call-to-action */}
+                    <button
                         type="submit"
                         disabled={loading}
                         className="w-full py-3 bg-amber-500 text-white rounded-lg font-bold uppercase tracking-widest text-xs hover:bg-amber-600 transition-all hover:scale-[1.02] shadow-md disabled:opacity-70 flex items-center justify-center gap-2 mt-2"
                     >
-                        {loading ? <Loader2 size={16} className="animate-spin" /> : (mode === 'login' ? 'Log In' : 'Create Account')}
+                        {loading ? <Loader2 size={16} className="animate-spin" /> : (mode === 'login' ? 'Continue' : 'Create Account')}
                     </button>
 
-                    <button 
+                    {/* UX: Google login as secondary option within same step */}
+                    <div className="relative my-2">
+                        <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t border-stone-100"></span>
+                        </div>
+                        <div className="relative flex justify-center text-[10px] uppercase">
+                            <span className="bg-white px-2 text-stone-400">Or</span>
+                        </div>
+                    </div>
+
+                    <button
                         type="button"
                         onClick={handleGoogleLogin}
                         disabled={loading}
                         className="w-full py-3 bg-white border border-stone-200 text-stone-600 rounded-lg font-bold text-xs hover:bg-stone-50 transition-colors flex items-center justify-center gap-2"
                     >
                          <svg className="w-4 h-4" viewBox="0 0 24 24"><path fill="currentColor" d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.748L12.545,10.239z"/></svg>
-                         Log in with Google
+                         {mode === 'login' ? 'Continue with Google' : 'Sign up with Google'}
                     </button>
 
+                    {/* UX: Switch between login/signup without going back to welcome */}
                     <div className="text-center mt-4">
-                        <button 
+                        <button
                             type="button"
                             onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError(null); }}
                             className="text-xs text-stone-500 hover:text-stone-900 transition-colors"
@@ -165,11 +192,12 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
                             {mode === 'login' ? "Don't have an account? Sign Up" : "Already have an account? Log In"}
                         </button>
                     </div>
-                    
+
+                     {/* UX: Clear back action to return to welcome */}
                      <div className="text-center">
-                        <button 
+                        <button
                             type="button"
-                            onClick={() => { setMode('welcome'); setError(null); }}
+                            onClick={() => { setMode('welcome'); setError(null); setEmail(''); setPassword(''); }}
                             className="text-[10px] text-stone-400 hover:text-stone-600 uppercase font-bold tracking-widest mt-2"
                         >
                             Back
