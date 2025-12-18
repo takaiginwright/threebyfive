@@ -101,7 +101,26 @@ const App: React.FC = () => {
   };
 
   const refreshData = () => {
-    setCards(getCards());
+    const allCards = getCards();
+
+    // MIGRATION: Derive categoryId from tags for legacy cards
+    const migratedCards = allCards.map(card => {
+      if (!card.categoryId && card.tags) {
+        // Find first category that has tags
+        for (const [category, tags] of Object.entries(card.tags)) {
+          if (tags && tags.length > 0) {
+            return {
+              ...card,
+              categoryId: category.toLowerCase(),
+              categoryLabel: category.toUpperCase()
+            };
+          }
+        }
+      }
+      return card;
+    });
+
+    setCards(migratedCards);
     setProjects(getProjects());
     setSets(getSets());
     setQuestions(getStoryQuestions());
@@ -280,9 +299,9 @@ const App: React.FC = () => {
       }
   }
 
-  // FIX: consistent category filtering helper
+  // FIX: Filter by categoryId (system + custom)
   const filteredCards = useMemo(() => {
-    return cards.filter(card => {
+    const filtered = cards.filter(card => {
       // Archive Filter Logic
       if (isViewingArchive) {
           if (!card.isArchived) return false;
@@ -301,16 +320,42 @@ const App: React.FC = () => {
 
       if (!matchesSearch) return false;
 
-      // FIX: category filtering supports custom categories
+      // FIX: Filter by categoryId (system + custom)
       if (selectedCategory === 'All') {
           return true; // ALL = show all cards, no filtering
       } else {
-          // Only show cards that have at least one tag in the selected category
-          // Works for both system categories (enum values) and custom categories (by name)
-          const tagsInCategory = card.tags[selectedCategory as CardCategory];
-          return tagsInCategory && tagsInCategory.length > 0;
+          // Match by categoryId for new cards or tags for backward compat
+          if (card.categoryId) {
+            // New format: match by ID or label
+            const allCategories = getCategoriesForProject(card.projectId);
+            const selectedCat = allCategories.find(
+              c => c.name === selectedCategory || c.id === selectedCategory
+            );
+            return selectedCat && card.categoryId === selectedCat.id;
+          } else {
+            // Legacy format: check if card has tags in this category
+            const tagsInCategory = card.tags[selectedCategory as CardCategory];
+            return tagsInCategory && tagsInCategory.length > 0;
+          }
       }
     });
+
+    // DEBUG: Lightweight debug logging (can be removed after verification)
+    if (selectedCategory !== 'All' && filtered.length === 0 && cards.length > 0) {
+      console.log('[Category Filter Debug]', {
+        selectedCategory,
+        totalCards: cards.length,
+        filteredCards: filtered.length,
+        sampleCardCategories: cards.slice(0, 3).map(c => ({
+          id: c.id.slice(0, 8),
+          categoryId: c.categoryId,
+          categoryLabel: c.categoryLabel,
+          hasTags: Object.keys(c.tags).length > 0
+        }))
+      });
+    }
+
+    return filtered;
   }, [cards, searchQuery, selectedCategory, selectedProjectId, isViewingArchive]);
   
   const filteredSets = useMemo(() => {

@@ -77,6 +77,11 @@ export interface IdeaCard {
   title: string;
   content: string;
   tags: Partial<Record<CardCategory, string[]>>; // Key is Category. Value is formatted string
+
+  // FIX: Add explicit category assignment (separate from tags)
+  categoryId?: string; // ID of assigned category (system or custom)
+  categoryLabel?: string; // Display name of category (for convenience)
+
   media: MediaAttachment[];
   drawing?: string; // Base64 PNG data URL for sketches
   threads: string[]; // IDs of linked cards
@@ -86,7 +91,7 @@ export interface IdeaCard {
   updatedAt: number;
   color: string; // Changed to string to support migration, but typically CardColor
   isArchived?: boolean; // New Archive Flag
-  
+
   // View Specific Data
   canvasX?: number;
   canvasY?: number;

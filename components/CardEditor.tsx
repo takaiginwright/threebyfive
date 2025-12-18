@@ -59,7 +59,11 @@ const CardEditor: React.FC<CardEditorProps> = ({ card, allCards, isDarkMode, onS
     // NEW: Load categories for this project
     const projectCategories = getCategoriesForProject(card.projectId);
     setCategories(projectCategories);
-    if (projectCategories.length > 0 && !newTagCategory) {
+
+    // FIX: Initialize category dropdown based on card's categoryId
+    if (card.categoryId) {
+      setNewTagCategory(card.categoryId);
+    } else if (projectCategories.length > 0) {
       setNewTagCategory(projectCategories[0].id);
     }
 
@@ -73,6 +77,16 @@ const CardEditor: React.FC<CardEditorProps> = ({ card, allCards, isDarkMode, onS
       setNewTagSub(selectedCategory.subcategories[0].id);
     } else {
       setNewTagSub('');
+    }
+
+    // FIX: Save category to card immediately when dropdown changes
+    if (selectedCategory && newTagCategory) {
+      setEditedCard(prev => ({
+        ...prev,
+        categoryId: selectedCategory.id,
+        categoryLabel: selectedCategory.name,
+        updatedAt: Date.now()
+      }));
     }
   }, [newTagCategory, categories]);
 
