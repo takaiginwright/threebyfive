@@ -685,6 +685,51 @@ const CardEditor: React.FC<CardEditorProps> = ({ card, allCards, isDarkMode, onS
 
                 {/* UX: TAGS CONTENT - Always visible when selected, immediate Create Tag UI */}
                 <div className={`flex-col h-full overflow-y-auto ${activeTab === 'tags' ? 'flex' : 'hidden'}`}>
+
+                    {/* FIX: Show attached tags in editor - prominent "Tags on this Card" section */}
+                    <div className="p-6 border-b border-stone-200/50 dark:border-white/5 bg-stone-50 dark:bg-white/5">
+                        <h3 className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-3">
+                            Tags on this Card
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
+                            {(() => {
+                                const allTags: { category: string; tag: string }[] = [];
+                                (Object.keys(editedCard.tags) as CardCategory[]).forEach(cat => {
+                                    (editedCard.tags[cat] || []).forEach(tag => {
+                                        allTags.push({ category: cat, tag });
+                                    });
+                                });
+
+                                if (allTags.length === 0) {
+                                    return (
+                                        <p className="text-xs text-stone-400 italic">No tags yet.</p>
+                                    );
+                                }
+
+                                return allTags.map((item, idx) => (
+                                    <div
+                                        key={idx}
+                                        className="group flex items-center gap-1.5 px-2.5 py-1.5 bg-white dark:bg-night-surface border border-stone-200 dark:border-white/10 rounded-lg shadow-sm hover:shadow-md transition-all"
+                                    >
+                                        <span className="text-[9px] font-bold uppercase tracking-widest text-stone-400">
+                                            {item.category}
+                                        </span>
+                                        <span className="text-[10px] text-stone-600 dark:text-stone-300">
+                                            {item.tag}
+                                        </span>
+                                        <button
+                                            onClick={() => removeTag(item.category as CardCategory, item.tag)}
+                                            className="text-stone-300 hover:text-red-500 dark:hover:text-red-400 transition-colors ml-1"
+                                            title="Remove tag"
+                                        >
+                                            <X size={10} />
+                                        </button>
+                                    </div>
+                                ));
+                            })()}
+                        </div>
+                    </div>
+
                     {/* UX: Tag Builder - immediately visible, no hidden state */}
                     <div className="p-6 border-b border-stone-200/50 dark:border-white/5 bg-white dark:bg-night-surface">
                         <h3 className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-4 flex items-center gap-2">
@@ -851,42 +896,6 @@ const CardEditor: React.FC<CardEditorProps> = ({ card, allCards, isDarkMode, onS
                         </div>
                     </div>
 
-                    {/* Existing Tags List */}
-                    <div className="p-6 space-y-6 flex-1">
-                        {ALL_CATEGORIES.map(category => {
-                            const tags = editedCard.tags[category] || [];
-                            if (tags.length === 0) return null;
-
-                            return (
-                                <div key={category}>
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <span className="text-[9px] font-bold uppercase tracking-widest text-stone-400">{category}</span>
-                                        <div className="h-px bg-stone-200 dark:bg-white/10 flex-1"></div>
-                                    </div>
-                                    <div className="flex flex-wrap gap-2">
-                                        {tags.map((tag, idx) => (
-                                            <div key={idx} className="group flex items-center gap-2 px-2.5 py-1 bg-white dark:bg-white/5 border border-stone-100 dark:border-white/5 rounded-md shadow-sm hover:shadow-md transition-all">
-                                                <span className="text-[10px] font-medium text-stone-600 dark:text-stone-400 uppercase tracking-wide">{tag}</span>
-                                                <button 
-                                                    onClick={() => removeTag(category, tag)}
-                                                    className="text-stone-300 hover:text-rose-500 transition-colors"
-                                                >
-                                                    <X size={10} />
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            );
-                        })}
-                        
-                        {Object.values(editedCard.tags).every((t) => !t || (t as string[]).length === 0) && (
-                            <div className="text-center py-10 opacity-30">
-                                <Tag className="mx-auto mb-3 text-stone-400" size={24} />
-                                <p className="text-[10px] font-bold uppercase tracking-widest text-stone-400">No tags yet</p>
-                            </div>
-                        )}
-                    </div>
                 </div>
 
                 <div className="p-6 border-t border-stone-200/50 dark:border-white/5 bg-stone-100/50 dark:bg-white/5">

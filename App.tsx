@@ -244,6 +244,7 @@ const App: React.FC = () => {
       }
   }
 
+  // FIX: consistent category filtering helper
   const filteredCards = useMemo(() => {
     return cards.filter(card => {
       // Archive Filter Logic
@@ -253,20 +254,25 @@ const App: React.FC = () => {
           if (card.isArchived) return false;
       }
 
+      // Project Filter
       if (selectedProjectId !== 'all' && card.projectId !== selectedProjectId) return false;
 
+      // Search Filter
       const q = searchQuery.toLowerCase();
-      const matchesSearch = (card.title?.toLowerCase() || '').includes(q) || 
+      const matchesSearch = (card.title?.toLowerCase() || '').includes(q) ||
                             (card.content?.toLowerCase() || '').includes(q) ||
                             Object.values(card.tags).flat().some((t) => typeof t === 'string' && t.toLowerCase().includes(q));
-      
+
       if (!matchesSearch) return false;
 
-      const matchesCategory = selectedCategory === 'All' || 
-                              (card.tags[selectedCategory as CardCategory] && 
-                               card.tags[selectedCategory as CardCategory]!.length > 0);
-
-      return matchesCategory;
+      // FIX: Category Filter - "All" shows everything, specific category shows only cards with tags in that category
+      if (selectedCategory === 'All') {
+          return true; // ALL = show all cards, no filtering
+      } else {
+          // Only show cards that have at least one tag in the selected category
+          const tagsInCategory = card.tags[selectedCategory as CardCategory];
+          return tagsInCategory && tagsInCategory.length > 0;
+      }
     });
   }, [cards, searchQuery, selectedCategory, selectedProjectId, isViewingArchive]);
   
@@ -336,6 +342,9 @@ const App: React.FC = () => {
               return <ThreadsView cards={filteredCards} sets={filteredSets} isDarkMode={theme === 'dark'} onCardClick={setEditingCard} />;
           case 'grid':
           default:
+              // FIX: ALL view renders ungrouped cards
+              // Note: Sets are a separate organizational feature, not category grouping
+              // Cards are grouped by Sets (user-created collections), not by tag categories
               return (
                 <div className="pb-20 space-y-12">
                     {/* Render Organized Sets First */}
