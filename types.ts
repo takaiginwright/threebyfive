@@ -6,6 +6,7 @@ export interface CategoryDefinition {
 }
 
 // Legacy enum kept for backward compatibility with existing tags
+// TAXONOMY: removed "Other" category
 export enum CardCategory {
   Setting = 'Setting',
   Theme = 'Theme',
@@ -14,12 +15,12 @@ export enum CardCategory {
   Mood = 'Mood',
   Visuals = 'Visuals',
   Sound = 'Sound',
-  Genre = 'Genre',
-  Other = 'Other'
+  Genre = 'Genre'
 }
 
 export const ALL_CATEGORIES = Object.values(CardCategory);
 
+// TAXONOMY: removed "Other" category
 export const SUBCATEGORIES: Record<CardCategory, string[]> = {
   [CardCategory.Setting]: ['Location', 'Time Period', 'Atmosphere', 'World Rule'],
   [CardCategory.Theme]: ['Identity', 'Freedom', 'Memory', 'Dreams vs Reality', 'Belonging', 'Ancestry', 'Central Question'],
@@ -28,8 +29,7 @@ export const SUBCATEGORIES: Record<CardCategory, string[]> = {
   [CardCategory.Mood]: ['Dreamlike', 'Intense', 'Tender', 'Surreal', 'Melancholy', 'Gritty', 'Ethereal', 'Playful', 'Liminal', 'Mystical'],
   [CardCategory.Visuals]: ['Color', 'Style', 'Lighting', 'Composition'],
   [CardCategory.Sound]: ['Design', 'Music', 'Silence', 'Foley'],
-  [CardCategory.Genre]: ['Genre Type', 'World Type', 'Trope'],
-  [CardCategory.Other]: []
+  [CardCategory.Genre]: ['Genre Type', 'World Type', 'Trope']
 };
 
 export interface User {

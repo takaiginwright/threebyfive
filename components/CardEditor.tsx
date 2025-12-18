@@ -680,12 +680,12 @@ const CardEditor: React.FC<CardEditorProps> = ({ card, allCards, isDarkMode, onS
                 {/* UX: TAGS CONTENT - Always visible when selected, immediate Create Tag UI */}
                 <div className={`flex-col h-full overflow-y-auto ${activeTab === 'tags' ? 'flex' : 'hidden'}`}>
 
-                    {/* FIX: Show attached tags in editor - prominent "Tags on this Card" section */}
+                    {/* UI CLEANUP: Show attached tags with cleaner empty state */}
                     <div className="p-6 border-b border-stone-200/50 dark:border-white/5 bg-stone-50 dark:bg-white/5">
                         <h3 className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-3">
                             Tags on this Card
                         </h3>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-2 min-h-[2rem]">
                             {(() => {
                                 const allTags: { category: string; tag: string }[] = [];
                                 (Object.keys(editedCard.tags) as CardCategory[]).forEach(cat => {
@@ -696,7 +696,7 @@ const CardEditor: React.FC<CardEditorProps> = ({ card, allCards, isDarkMode, onS
 
                                 if (allTags.length === 0) {
                                     return (
-                                        <p className="text-xs text-stone-400 italic">No tags yet.</p>
+                                        <p className="text-[10px] text-stone-400 dark:text-stone-500 italic">No tags yet</p>
                                     );
                                 }
 
@@ -724,16 +724,12 @@ const CardEditor: React.FC<CardEditorProps> = ({ card, allCards, isDarkMode, onS
                         </div>
                     </div>
 
-                    {/* UX: Tag Builder - immediately visible, no hidden state */}
+                    {/* UI CLEANUP: Tag builder with clearer visual hierarchy */}
                     <div className="p-6 border-b border-stone-200/50 dark:border-white/5 bg-white dark:bg-night-surface">
-                        <h3 className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-2 flex items-center gap-2">
+                        <h3 className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-4 flex items-center gap-2">
                             <Tag size={12} />
-                            Create Tag
+                            Add Tag
                         </h3>
-                        {/* FIX: Add microcopy to clarify workflow */}
-                        <p className="text-[9px] text-stone-500 dark:text-stone-500 mb-4 leading-relaxed">
-                            Select category and subcategory, then add tags. Each field saves automatically.
-                        </p>
                         <div className="space-y-3">
                             {/* NEW: Category dropdown with inline add */}
                             <div>
@@ -871,24 +867,28 @@ const CardEditor: React.FC<CardEditorProps> = ({ card, allCards, isDarkMode, onS
                                 </div>
                             )}
 
-                            {/* Tag name input */}
+                            {/* UI CLEANUP: Tag name input with clearer "+" button association */}
                             {!isAddingCategory && !isAddingSubcategory && (
-                                <div className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        value={newTagValue}
-                                        onChange={(e) => setNewTagValue(e.target.value)}
-                                        onKeyDown={(e) => e.key === 'Enter' && addTag()}
-                                        placeholder="Tag name..."
-                                        className="flex-1 text-xs p-2.5 bg-white dark:bg-night-surface border-none rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-stone-200 dark:focus:ring-white/20 placeholder-stone-400 text-stone-800 dark:text-stone-200 font-medium"
-                                    />
-                                    <button
-                                        onClick={addTag}
-                                        disabled={!newTagValue.trim()}
-                                        className="p-2.5 bg-stone-900 dark:bg-white text-white dark:text-black rounded-lg hover:bg-black dark:hover:bg-stone-200 disabled:opacity-50 transition-colors shadow-lg"
-                                    >
-                                        <Plus size={16} />
-                                    </button>
+                                <div>
+                                    <span className="text-[9px] font-bold uppercase tracking-widest text-stone-400 mb-1.5 block">Tag</span>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            value={newTagValue}
+                                            onChange={(e) => setNewTagValue(e.target.value)}
+                                            onKeyDown={(e) => e.key === 'Enter' && addTag()}
+                                            placeholder="Tag name..."
+                                            className="flex-1 text-xs p-2.5 bg-white dark:bg-night-surface border-none rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-stone-200 dark:focus:ring-white/20 placeholder-stone-400 text-stone-800 dark:text-stone-200 font-medium"
+                                        />
+                                        <button
+                                            onClick={addTag}
+                                            disabled={!newTagValue.trim()}
+                                            className="p-2.5 bg-stone-900 dark:bg-white text-white dark:text-black rounded-lg hover:bg-black dark:hover:bg-stone-200 disabled:opacity-50 transition-colors shadow-lg"
+                                            title="Add tag"
+                                        >
+                                            <Plus size={16} />
+                                        </button>
+                                    </div>
                                 </div>
                             )}
                         </div>
