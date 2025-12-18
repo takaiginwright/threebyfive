@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { IdeaCard, CardCategory, ALL_CATEGORIES, SUBCATEGORIES, CardColor, getThemeColor, Project, MediaAttachment, MediaType, IdeaSet, StoryQuestion, CategoryDefinition } from '../types';
-import { X, Save, Tag, Plus, Trash2, ChevronDown, Image as ImageIcon, Link as LinkIcon, Video, Music, ExternalLink, GitMerge, Search, Layers, Archive, RefreshCw, HelpCircle, PenTool } from 'lucide-react';
+import { IdeaCard, CardCategory, ALL_CATEGORIES, SUBCATEGORIES, CardColor, getThemeColor, Project, MediaAttachment, MediaType, CategoryDefinition } from '../types';
+import { X, Save, Tag, Plus, Trash2, ChevronDown, Image as ImageIcon, Link as LinkIcon, Video, Music, ExternalLink, GitMerge, Search, Archive, RefreshCw, PenTool } from 'lucide-react';
 import { autoTagCard } from '../services/geminiService';
-import { getProjects, getSets, getStoryQuestions } from '../services/storageService';
+import { getProjects } from '../services/storageService';
 import { getCategoriesForProject, addCategory, addSubcategory } from '../services/categoryService';
 import DrawingCanvas from './DrawingCanvas';
 
@@ -22,8 +22,7 @@ const CardEditor: React.FC<CardEditorProps> = ({ card, allCards, isDarkMode, onS
   const [editedCard, setEditedCard] = useState<IdeaCard>({ ...card, media: card.media || [], threads: card.threads || [], sets: card.sets || [], storyQuestions: card.storyQuestions || [] });
   const [isGenerating, setIsGenerating] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [availableSets, setAvailableSets] = useState<IdeaSet[]>([]);
-  const [availableQuestions, setAvailableQuestions] = useState<StoryQuestion[]>([]);
+  // FIX: Removed availableSets and availableQuestions - Sets/Story Questions no longer in card editor
 
   // FIX: Default to 'tags' so the Create Tag UI is immediately visible in right panel
   const [activeTab, setActiveTab] = useState<'content' | 'tags' | 'threads'>('tags');
@@ -55,11 +54,7 @@ const CardEditor: React.FC<CardEditorProps> = ({ card, allCards, isDarkMode, onS
 
   useEffect(() => {
     setProjects(getProjects());
-    const allSets = getSets();
-    setAvailableSets(allSets.filter(s => s.projectId === card.projectId));
-
-    const allQuestions = getStoryQuestions();
-    setAvailableQuestions(allQuestions.filter(q => q.projectId === card.projectId));
+    // FIX: Removed Sets/Story Questions loading - no longer in card editor
 
     // NEW: Load categories for this project
     const projectCategories = getCategoriesForProject(card.projectId);
@@ -92,28 +87,8 @@ const CardEditor: React.FC<CardEditorProps> = ({ card, allCards, isDarkMode, onS
   const handleChange = (field: keyof IdeaCard, value: any) => {
     setEditedCard(prev => ({ ...prev, [field]: value, updatedAt: Date.now() }));
   };
-  
-  const toggleSet = (setId: string) => {
-      setEditedCard(prev => {
-          const currentSets = prev.sets || [];
-          if (currentSets.includes(setId)) {
-              return { ...prev, sets: currentSets.filter(id => id !== setId), updatedAt: Date.now() };
-          } else {
-              return { ...prev, sets: [...currentSets, setId], updatedAt: Date.now() };
-          }
-      });
-  }
 
-  const toggleQuestion = (qId: string) => {
-      setEditedCard(prev => {
-          const currentQs = prev.storyQuestions || [];
-          if (currentQs.includes(qId)) {
-              return { ...prev, storyQuestions: currentQs.filter(id => id !== qId), updatedAt: Date.now() };
-          } else {
-              return { ...prev, storyQuestions: [...currentQs, qId], updatedAt: Date.now() };
-          }
-      });
-  }
+  // FIX: Removed toggleSet and toggleQuestion - Sets/Story Questions no longer in card editor
 
   // NEW: Handlers for adding categories and subcategories
   const handleAddCategory = () => {
@@ -737,10 +712,14 @@ const CardEditor: React.FC<CardEditorProps> = ({ card, allCards, isDarkMode, onS
 
                     {/* UX: Tag Builder - immediately visible, no hidden state */}
                     <div className="p-6 border-b border-stone-200/50 dark:border-white/5 bg-white dark:bg-night-surface">
-                        <h3 className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-4 flex items-center gap-2">
+                        <h3 className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-2 flex items-center gap-2">
                             <Tag size={12} />
                             Create Tag
                         </h3>
+                        {/* FIX: Add microcopy to clarify workflow */}
+                        <p className="text-[9px] text-stone-500 dark:text-stone-500 mb-4 leading-relaxed">
+                            Select category and subcategory, then add tags. Each field saves automatically.
+                        </p>
                         <div className="space-y-3">
                             {/* NEW: Category dropdown with inline add */}
                             <div>

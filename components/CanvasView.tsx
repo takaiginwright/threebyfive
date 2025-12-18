@@ -22,6 +22,10 @@ const CanvasView: React.FC<CanvasViewProps> = ({ cards, isDarkMode, onCardClick,
   const [draggingCardId, setDraggingCardId] = useState<string | null>(null);
   const [cardDragOffset, setCardDragOffset] = useState({ x: 0, y: 0 });
 
+  // FIX: Track if user actually dragged (vs just clicked)
+  const [didDrag, setDidDrag] = useState(false);
+  const dragThreshold = 8; // pixels
+
   // Mouse Handlers for Panning & Card Dragging
   const handleMouseDown = (e: React.MouseEvent) => {
       // If clicking directly on the canvas background
@@ -34,11 +38,12 @@ const CanvasView: React.FC<CanvasViewProps> = ({ cards, isDarkMode, onCardClick,
   const handleCardMouseDown = (e: React.MouseEvent, card: IdeaCard) => {
       e.stopPropagation(); // Prevent panning
       setDraggingCardId(card.id);
-      
+      setDidDrag(false); // FIX: Reset drag flag
+
       // Calculate offset from card's position to mouse pointer considering scale
       const cardX = card.canvasX || 0;
       const cardY = card.canvasY || 0;
-      
+
       // Convert mouse screen position to world space is tricky with CSS transform.
       // Easiest is to track delta during movement.
       setDragStart({ x: e.clientX, y: e.clientY });
@@ -55,28 +60,24 @@ const CanvasView: React.FC<CanvasViewProps> = ({ cards, isDarkMode, onCardClick,
       if (draggingCardId) {
           const deltaX = (e.clientX - dragStart.x) / scale;
           const deltaY = (e.clientY - dragStart.y) / scale;
-          
+
+          // FIX: Check if movement exceeds threshold to mark as drag
+          const distance = Math.sqrt(Math.pow(e.clientX - dragStart.x, 2) + Math.pow(e.clientY - dragStart.y, 2));
+          if (distance > dragThreshold) {
+              setDidDrag(true);
+          }
+
           const card = cards.find(c => c.id === draggingCardId);
-          if (card) {
+          if (card && didDrag) {
               const newX = (card.canvasX || 0) + deltaX;
               const newY = (card.canvasY || 0) + deltaY;
-              
-              // We need to trigger update in parent, but doing it on every pixel move is heavy.
-              // For smoothness, we might want local state or just update efficiently.
-              // Since we are using standard React state in App, let's just update. 
-              // Optimization: In a real app, use ref for direct DOM manipulation then save on mouseUp.
-              // Here we will rely on React's diffing, might be slightly jittery on slow machines but OK for MVP.
-              
-              // Actually, updating the whole card list on every frame is bad.
-              // Let's cheat: we won't update the parent 'cards' state until mouse up.
-              // We will update a local visual override? No, that's complex to sync.
-              // Let's try direct update first.
+
                onUpdateCard({
                   ...card,
                   canvasX: newX,
                   canvasY: newY
               });
-              
+
               setDragStart({ x: e.clientX, y: e.clientY });
           }
       }
@@ -85,6 +86,8 @@ const CanvasView: React.FC<CanvasViewProps> = ({ cards, isDarkMode, onCardClick,
   const handleMouseUp = () => {
       setIsPanning(false);
       setDraggingCardId(null);
+      // FIX: Reset drag flag after a short delay to prevent click event
+      setTimeout(() => setDidDrag(false), 0);
   };
 
   const handleWheel = (e: React.WheelEvent) => {
@@ -129,13 +132,14 @@ const CanvasView: React.FC<CanvasViewProps> = ({ cards, isDarkMode, onCardClick,
                     }}
                     onMouseDown={(e) => handleCardMouseDown(e, card)}
                 >
-                     <Card 
-                        card={card} 
-                        isDarkMode={isDarkMode} 
+                     <Card
+                        card={card}
+                        isDarkMode={isDarkMode}
                         onClick={() => {
-                            // Only click if not dragging (simple heuristic: if we just moused down and up without move)
-                            // For now, standard click.
-                            onCardClick(card);
+                            // FIX: Only open card if user didn't drag
+                            if (!didDrag) {
+                                onCardClick(card);
+                            }
                         }}
                         className="shadow-xl"
                      />
