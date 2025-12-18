@@ -348,11 +348,17 @@ const App: React.FC = () => {
               return (
                 <div className="pb-20 space-y-12">
                     {/* Render Organized Sets First */}
-                    {filteredSets.map(set => {
+                    {/* FIX: never render empty headers - only show Sets that have cards */}
+                    {filteredSets
+                        .filter(set => {
+                            const setCards = filteredCards.filter(c => (c.sets || []).includes(set.id));
+                            return setCards.length > 0; // FIX: only render Sets with at least 1 card
+                        })
+                        .map(set => {
                         const setCards = filteredCards.filter(c => (c.sets || []).includes(set.id));
-                        
+
                         return (
-                            <div 
+                            <div
                                 key={set.id}
                                 onDragOver={(e) => e.preventDefault()}
                                 onDrop={(e) => handleDropCardOnSet(e, set.id)}
@@ -363,43 +369,54 @@ const App: React.FC = () => {
                                     <span className="text-xs text-stone-400">({setCards.length})</span>
                                     <button onClick={() => handleDeleteSet(set.id)} className="opacity-0 group-hover:opacity-100 p-1 text-stone-300 hover:text-red-500 transition-opacity"><Trash2 size={12} /></button>
                                 </div>
-                                
-                                {setCards.length === 0 ? (
-                                     <div className="h-24 border-2 border-dashed border-stone-100 dark:border-white/5 rounded-xl flex items-center justify-center">
-                                         <p className="text-[10px] uppercase tracking-widest text-stone-300">Drag cards here</p>
-                                     </div>
-                                ) : (
-                                    <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 gap-6 space-y-6">
-                                        {setCards.map((card) => (
-                                            <div key={`set-${set.id}-${card.id}`} draggable onDragStart={(e) => e.dataTransfer.setData("text/plain", card.id)}>
-                                                <Card 
-                                                    card={card} 
-                                                    isDarkMode={theme === 'dark'}
-                                                    onClick={() => setEditingCard(card)} 
-                                                />
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
+
+                                <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 gap-6 space-y-6">
+                                    {setCards.map((card) => (
+                                        <div key={`set-${set.id}-${card.id}`} draggable onDragStart={(e) => e.dataTransfer.setData("text/plain", card.id)}>
+                                            <Card
+                                                card={card}
+                                                isDarkMode={theme === 'dark'}
+                                                onClick={() => setEditingCard(card)}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         );
                     })}
 
                     {/* Unsorted Cards */}
-                    <div>
-                        {filteredSets.length > 0 && <div className="flex items-center gap-2 mb-4 mt-8"><span className="w-1.5 h-1.5 bg-stone-300 dark:bg-stone-600 rounded-full"></span><h3 className="text-xs font-bold uppercase tracking-widest text-stone-400">Unsorted</h3></div>}
-                        <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 gap-6 space-y-6">
-                            {filteredCards.filter(c => !c.sets || c.sets.length === 0).map((card) => (
-                                <div key={card.id} draggable onDragStart={(e) => e.dataTransfer.setData("text/plain", card.id)}>
-                                    <Card 
-                                        card={card} 
-                                        isDarkMode={theme === 'dark'}
-                                        onClick={() => setEditingCard(card)} 
-                                    />
+                    {/* FIX: only show "Unsorted" section if there are actually unsorted cards */}
+                    {(() => {
+                        const unsortedCards = filteredCards.filter(c => !c.sets || c.sets.length === 0);
+                        if (unsortedCards.length === 0) return null;
+
+                        return (
+                            <div>
+                                {/* Only show "Unsorted" header if there are also Sets being shown */}
+                                {filteredSets.filter(set => {
+                                    const setCards = filteredCards.filter(c => (c.sets || []).includes(set.id));
+                                    return setCards.length > 0;
+                                }).length > 0 && (
+                                    <div className="flex items-center gap-2 mb-4 mt-8">
+                                        <span className="w-1.5 h-1.5 bg-stone-300 dark:bg-stone-600 rounded-full"></span>
+                                        <h3 className="text-xs font-bold uppercase tracking-widest text-stone-400">Unsorted</h3>
+                                    </div>
+                                )}
+                                <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 gap-6 space-y-6">
+                                    {unsortedCards.map((card) => (
+                                        <div key={card.id} draggable onDragStart={(e) => e.dataTransfer.setData("text/plain", card.id)}>
+                                            <Card
+                                                card={card}
+                                                isDarkMode={theme === 'dark'}
+                                                onClick={() => setEditingCard(card)}
+                                            />
+                                        </div>
+                                    ))}
                                 </div>
-                            ))}
-                        </div>
-                    </div>
+                            </div>
+                        );
+                    })()}
                 </div>
               );
       }
