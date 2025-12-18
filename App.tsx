@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Plus, Search, ChevronDown, Sparkles, Send, Sun, Moon, LayoutGrid, Kanban, MousePointer2, GitGraph, Layers, Trash2, Archive, HelpCircle, LogOut, User as UserIcon } from 'lucide-react';
 import { IdeaCard, ALL_CATEGORIES, CardCategory, Project, ViewMode, IdeaSet, StoryQuestion, User } from './types';
 import { getCards, saveCard, saveCards, createNewCard, getProjects, saveProject, getTheme, saveTheme, Theme, getSets, saveSet, deleteSet, getStoryQuestions, saveStoryQuestion, deleteStoryQuestion, setStorageNamespace } from './services/storageService';
+import { setStorageNamespace as setCategoryNamespace } from './services/categoryService';
 import { getSession, logout as authLogout } from './services/authService';
 import Card from './components/Card';
 import CardEditor from './components/CardEditor';
@@ -59,6 +60,7 @@ const App: React.FC = () => {
   const initDataForUser = (u: User) => {
       setUser(u);
       setStorageNamespace(u.id);
+      setCategoryNamespace(u.id); // NEW: Initialize category namespace
       refreshData();
   }
 

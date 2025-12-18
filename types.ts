@@ -1,15 +1,8 @@
-// NEW: Dynamic tag taxonomy system - supports user-defined categories and subcategories
-export interface TagSubcategory {
+// NEW: custom category + subcategory support - Project-level definitions
+export interface CategoryDefinition {
   id: string;
-  name: string;
-  isSystem: boolean; // true for built-in defaults, false for user-created
-}
-
-export interface TagCategory {
-  id: string;
-  name: string;
-  isSystem: boolean; // true for built-in defaults, false for user-created
-  subcategories: TagSubcategory[];
+  name: string; // Display name (e.g., "SETTING", "CULTURE")
+  subcategories: { id: string; name: string }[]; // Subcategories under this category
 }
 
 // Legacy enum kept for backward compatibility with existing tags

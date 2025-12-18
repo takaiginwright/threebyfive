@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { IdeaCard, CardCategory, ALL_CATEGORIES, SUBCATEGORIES, CardColor, getThemeColor, Project, MediaAttachment, MediaType, IdeaSet, StoryQuestion } from '../types';
+import { IdeaCard, CardCategory, ALL_CATEGORIES, SUBCATEGORIES, CardColor, getThemeColor, Project, MediaAttachment, MediaType, IdeaSet, StoryQuestion, CategoryDefinition } from '../types';
 import { X, Save, Tag, Plus, Trash2, ChevronDown, Image as ImageIcon, Link as LinkIcon, Video, Music, ExternalLink, GitMerge, Search, Layers, Archive, RefreshCw, HelpCircle, PenTool } from 'lucide-react';
 import { autoTagCard } from '../services/geminiService';
 import { getProjects, getSets, getStoryQuestions } from '../services/storageService';
+import { getCategoriesForProject, addCategory, addSubcategory } from '../services/categoryService';
 import DrawingCanvas from './DrawingCanvas';
 
 interface CardEditorProps {
@@ -22,14 +23,21 @@ const CardEditor: React.FC<CardEditorProps> = ({ card, allCards, isDarkMode, onS
   const [projects, setProjects] = useState<Project[]>([]);
   const [availableSets, setAvailableSets] = useState<IdeaSet[]>([]);
   const [availableQuestions, setAvailableQuestions] = useState<StoryQuestion[]>([]);
-  
+
   // FIX: Default to 'tags' so the Create Tag UI is immediately visible in right panel
   const [activeTab, setActiveTab] = useState<'content' | 'tags' | 'threads'>('tags');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
+  // NEW: custom category + subcategory support
+  const [categories, setCategories] = useState<CategoryDefinition[]>([]);
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [isAddingSubcategory, setIsAddingSubcategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [newSubcategoryName, setNewSubcategoryName] = useState('');
+
   // Tag Builder State
-  const [newTagCategory, setNewTagCategory] = useState<CardCategory>(CardCategory.Setting);
+  const [newTagCategory, setNewTagCategory] = useState<string>('');
   const [newTagSub, setNewTagSub] = useState<string>('');
   const [newTagValue, setNewTagValue] = useState<string>('');
   
@@ -48,17 +56,29 @@ const CardEditor: React.FC<CardEditorProps> = ({ card, allCards, isDarkMode, onS
     setProjects(getProjects());
     const allSets = getSets();
     setAvailableSets(allSets.filter(s => s.projectId === card.projectId));
-    
+
     const allQuestions = getStoryQuestions();
     setAvailableQuestions(allQuestions.filter(q => q.projectId === card.projectId));
-    
+
+    // NEW: Load categories for this project
+    const projectCategories = getCategoriesForProject(card.projectId);
+    setCategories(projectCategories);
+    if (projectCategories.length > 0 && !newTagCategory) {
+      setNewTagCategory(projectCategories[0].id);
+    }
+
     setEditedCard({ ...card, media: card.media || [], threads: card.threads || [], sets: card.sets || [], storyQuestions: card.storyQuestions || [] });
   }, [card]);
 
   useEffect(() => {
-    const subs = SUBCATEGORIES[newTagCategory];
-    setNewTagSub(subs && subs.length > 0 ? subs[0] : '');
-  }, [newTagCategory]);
+    // NEW: Update subcategory when category changes
+    const selectedCategory = categories.find(cat => cat.id === newTagCategory);
+    if (selectedCategory && selectedCategory.subcategories.length > 0) {
+      setNewTagSub(selectedCategory.subcategories[0].id);
+    } else {
+      setNewTagSub('');
+    }
+  }, [newTagCategory, categories]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -94,22 +114,66 @@ const CardEditor: React.FC<CardEditorProps> = ({ card, allCards, isDarkMode, onS
       });
   }
 
+  // NEW: Handlers for adding categories and subcategories
+  const handleAddCategory = () => {
+    if (!newCategoryName.trim()) return;
+    try {
+      const updated = addCategory(editedCard.projectId, newCategoryName);
+      setCategories(updated);
+      const newCat = updated.find(c => c.name.toUpperCase() === newCategoryName.trim().toUpperCase());
+      if (newCat) {
+        setNewTagCategory(newCat.id);
+      }
+      setNewCategoryName('');
+      setIsAddingCategory(false);
+    } catch (error: any) {
+      alert(error.message || 'Failed to add category');
+    }
+  };
+
+  const handleAddSubcategory = () => {
+    if (!newSubcategoryName.trim()) return;
+    try {
+      const updated = addSubcategory(editedCard.projectId, newTagCategory, newSubcategoryName);
+      setCategories(updated);
+      const updatedCategory = updated.find(c => c.id === newTagCategory);
+      const newSub = updatedCategory?.subcategories.find(
+        s => s.name.toLowerCase() === newSubcategoryName.trim().toLowerCase()
+      );
+      if (newSub) {
+        setNewTagSub(newSub.id);
+      }
+      setNewSubcategoryName('');
+      setIsAddingSubcategory(false);
+    } catch (error: any) {
+      alert(error.message || 'Failed to add subcategory');
+    }
+  };
+
   const addTag = () => {
     if (!newTagValue.trim()) return;
 
-    const formattedTag = newTagSub && newTagSub.trim() 
-      ? `${newTagSub} – ${newTagValue.trim()}`
+    // NEW: Get category and subcategory names for the tag
+    const selectedCategory = categories.find(cat => cat.id === newTagCategory);
+    if (!selectedCategory) return;
+
+    const selectedSubcategory = selectedCategory.subcategories.find(sub => sub.id === newTagSub);
+    const formattedTag = selectedSubcategory
+      ? `${selectedSubcategory.name} – ${newTagValue.trim()}`
       : newTagValue.trim();
 
+    // Use category name as the key (for backward compatibility)
+    const categoryKey = selectedCategory.name as CardCategory;
+
     setEditedCard(prev => {
-      const existingTags = prev.tags[newTagCategory] || [];
+      const existingTags = prev.tags[categoryKey] || [];
       if (existingTags.includes(formattedTag)) return prev;
 
       return {
         ...prev,
         tags: {
           ...prev.tags,
-          [newTagCategory]: [...existingTags, formattedTag]
+          [categoryKey]: [...existingTags, formattedTag]
         }
       };
     });
@@ -628,48 +692,162 @@ const CardEditor: React.FC<CardEditorProps> = ({ card, allCards, isDarkMode, onS
                             Create Tag
                         </h3>
                         <div className="space-y-3">
-                            <div className="relative">
-                                <select 
-                                    value={newTagCategory}
-                                    onChange={(e) => setNewTagCategory(e.target.value as CardCategory)}
-                                    className="w-full text-[11px] font-bold uppercase tracking-wide p-2.5 pr-8 bg-white dark:bg-night-surface border-none rounded-lg shadow-sm text-stone-800 dark:text-stone-200 focus:outline-none focus:ring-1 focus:ring-stone-200 dark:focus:ring-white/20 cursor-pointer appearance-none"
-                                >
-                                    {ALL_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                                </select>
-                                <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
+                            {/* NEW: Category dropdown with inline add */}
+                            <div>
+                                <div className="flex items-center justify-between mb-1.5">
+                                    <span className="text-[9px] font-bold uppercase tracking-widest text-stone-400">Category</span>
+                                    {!isAddingCategory && (
+                                        <button
+                                            onClick={() => setIsAddingCategory(true)}
+                                            className="text-[9px] font-bold uppercase tracking-widest text-stone-500 hover:text-stone-900 dark:text-stone-500 dark:hover:text-white transition-colors"
+                                        >
+                                            + New Category
+                                        </button>
+                                    )}
+                                </div>
+
+                                {isAddingCategory ? (
+                                    <div className="flex gap-2 animate-enter">
+                                        <input
+                                            type="text"
+                                            value={newCategoryName}
+                                            onChange={(e) => setNewCategoryName(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') handleAddCategory();
+                                                if (e.key === 'Escape') {
+                                                    setIsAddingCategory(false);
+                                                    setNewCategoryName('');
+                                                }
+                                            }}
+                                            placeholder="Category name (e.g., CULTURE)"
+                                            className="flex-1 text-xs p-2.5 bg-stone-50 dark:bg-black/20 border border-stone-200 dark:border-white/10 rounded-lg focus:outline-none focus:ring-1 focus:ring-stone-300 dark:focus:ring-white/20 placeholder-stone-400 text-stone-800 dark:text-stone-200"
+                                            autoFocus
+                                        />
+                                        <button
+                                            onClick={handleAddCategory}
+                                            className="px-3 py-2.5 bg-stone-900 dark:bg-white text-white dark:text-black text-[9px] font-bold rounded-lg hover:bg-black dark:hover:bg-stone-200 transition-colors"
+                                        >
+                                            Save
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setIsAddingCategory(false);
+                                                setNewCategoryName('');
+                                            }}
+                                            className="px-3 py-2.5 text-stone-500 hover:text-stone-900 dark:text-stone-500 dark:hover:text-white text-[9px] font-bold transition-colors"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="relative">
+                                        <select
+                                            value={newTagCategory}
+                                            onChange={(e) => setNewTagCategory(e.target.value)}
+                                            className="w-full text-[11px] font-bold uppercase tracking-wide p-2.5 pr-8 bg-white dark:bg-night-surface border-none rounded-lg shadow-sm text-stone-800 dark:text-stone-200 focus:outline-none focus:ring-1 focus:ring-stone-200 dark:focus:ring-white/20 cursor-pointer appearance-none"
+                                        >
+                                            {categories.map(cat => (
+                                                <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                            ))}
+                                        </select>
+                                        <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
+                                    </div>
+                                )}
                             </div>
-                            
-                            {SUBCATEGORIES[newTagCategory]?.length > 0 && (
-                                <div className="relative">
-                                    <select
-                                        value={newTagSub}
-                                        onChange={(e) => setNewTagSub(e.target.value)}
-                                        className="w-full text-xs p-2.5 pr-8 bg-white dark:bg-night-surface border-none rounded-lg shadow-sm text-stone-600 dark:text-stone-400 focus:outline-none focus:ring-1 focus:ring-stone-200 dark:focus:ring-white/20 cursor-pointer appearance-none"
-                                    >
-                                        <option value="" disabled>Select Subcategory</option>
-                                        {SUBCATEGORIES[newTagCategory].map(sub => <option key={sub} value={sub}>{sub}</option>)}
-                                    </select>
-                                    <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
+
+                            {/* NEW: Subcategory dropdown with inline add */}
+                            {!isAddingCategory && newTagCategory && (
+                                <div>
+                                    <div className="flex items-center justify-between mb-1.5">
+                                        <span className="text-[9px] font-bold uppercase tracking-widest text-stone-400">Subcategory</span>
+                                        {!isAddingSubcategory && (
+                                            <button
+                                                onClick={() => setIsAddingSubcategory(true)}
+                                                className="text-[9px] font-bold uppercase tracking-widest text-stone-500 hover:text-stone-900 dark:text-stone-500 dark:hover:text-white transition-colors"
+                                            >
+                                                + New Subcategory
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {isAddingSubcategory ? (
+                                        <div className="flex gap-2 animate-enter">
+                                            <input
+                                                type="text"
+                                                value={newSubcategoryName}
+                                                onChange={(e) => setNewSubcategoryName(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') handleAddSubcategory();
+                                                    if (e.key === 'Escape') {
+                                                        setIsAddingSubcategory(false);
+                                                        setNewSubcategoryName('');
+                                                    }
+                                                }}
+                                                placeholder="Subcategory name (e.g., Ritual)"
+                                                className="flex-1 text-xs p-2.5 bg-stone-50 dark:bg-black/20 border border-stone-200 dark:border-white/10 rounded-lg focus:outline-none focus:ring-1 focus:ring-stone-300 dark:focus:ring-white/20 placeholder-stone-400 text-stone-800 dark:text-stone-200"
+                                                autoFocus
+                                            />
+                                            <button
+                                                onClick={handleAddSubcategory}
+                                                className="px-3 py-2.5 bg-stone-900 dark:bg-white text-white dark:text-black text-[9px] font-bold rounded-lg hover:bg-black dark:hover:bg-stone-200 transition-colors"
+                                            >
+                                                Save
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setIsAddingSubcategory(false);
+                                                    setNewSubcategoryName('');
+                                                }}
+                                                className="px-3 py-2.5 text-stone-500 hover:text-stone-900 dark:text-stone-500 dark:hover:text-white text-[9px] font-bold transition-colors"
+                                            >
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            {categories.find(c => c.id === newTagCategory)?.subcategories.length === 0 ? (
+                                                <div className="text-[10px] text-stone-400 italic p-3 bg-stone-50 dark:bg-white/5 rounded-lg text-center">
+                                                    No subcategories yet. Click "+ New Subcategory" to add one.
+                                                </div>
+                                            ) : (
+                                                <div className="relative">
+                                                    <select
+                                                        value={newTagSub}
+                                                        onChange={(e) => setNewTagSub(e.target.value)}
+                                                        className="w-full text-xs p-2.5 pr-8 bg-white dark:bg-night-surface border-none rounded-lg shadow-sm text-stone-600 dark:text-stone-400 focus:outline-none focus:ring-1 focus:ring-stone-200 dark:focus:ring-white/20 cursor-pointer appearance-none"
+                                                    >
+                                                        {categories.find(c => c.id === newTagCategory)?.subcategories.map(sub => (
+                                                            <option key={sub.id} value={sub.id}>{sub.name}</option>
+                                                        ))}
+                                                    </select>
+                                                    <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
                                 </div>
                             )}
 
-                            <div className="flex gap-2">
-                                <input 
-                                    type="text"
-                                    value={newTagValue}
-                                    onChange={(e) => setNewTagValue(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && addTag()}
-                                    placeholder="Tag name..."
-                                    className="flex-1 text-xs p-2.5 bg-white dark:bg-night-surface border-none rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-stone-200 dark:focus:ring-white/20 placeholder-stone-400 text-stone-800 dark:text-stone-200 font-medium"
-                                />
-                                <button 
-                                    onClick={addTag}
-                                    disabled={!newTagValue.trim()}
-                                    className="p-2.5 bg-stone-900 dark:bg-white text-white dark:text-black rounded-lg hover:bg-black dark:hover:bg-stone-200 disabled:opacity-50 transition-colors shadow-lg"
-                                >
-                                    <Plus size={16} />
-                                </button>
-                            </div>
+                            {/* Tag name input */}
+                            {!isAddingCategory && !isAddingSubcategory && (
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={newTagValue}
+                                        onChange={(e) => setNewTagValue(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && addTag()}
+                                        placeholder="Tag name..."
+                                        className="flex-1 text-xs p-2.5 bg-white dark:bg-night-surface border-none rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-stone-200 dark:focus:ring-white/20 placeholder-stone-400 text-stone-800 dark:text-stone-200 font-medium"
+                                    />
+                                    <button
+                                        onClick={addTag}
+                                        disabled={!newTagValue.trim()}
+                                        className="p-2.5 bg-stone-900 dark:bg-white text-white dark:text-black rounded-lg hover:bg-black dark:hover:bg-stone-200 disabled:opacity-50 transition-colors shadow-lg"
+                                    >
+                                        <Plus size={16} />
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
 
