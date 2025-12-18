@@ -1,4 +1,18 @@
+// NEW: Dynamic tag taxonomy system - supports user-defined categories and subcategories
+export interface TagSubcategory {
+  id: string;
+  name: string;
+  isSystem: boolean; // true for built-in defaults, false for user-created
+}
 
+export interface TagCategory {
+  id: string;
+  name: string;
+  isSystem: boolean; // true for built-in defaults, false for user-created
+  subcategories: TagSubcategory[];
+}
+
+// Legacy enum kept for backward compatibility with existing tags
 export enum CardCategory {
   Setting = 'Setting',
   Theme = 'Theme',
