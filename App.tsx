@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Plus, Search, ChevronDown, Sparkles, Send, Sun, Moon, LayoutGrid, Kanban, MousePointer2, GitGraph, Layers, Trash2, Archive, HelpCircle, LogOut, User as UserIcon } from 'lucide-react';
-import { IdeaCard, ALL_CATEGORIES, CardCategory, Project, ViewMode, IdeaSet, StoryQuestion, User } from './types';
+import { Plus, Search, ChevronDown, Sparkles, Send, Sun, Moon, LayoutGrid, Kanban, MousePointer2, GitGraph, Layers, Trash2, Archive, HelpCircle, LogOut, User as UserIcon, MoreHorizontal } from 'lucide-react';
+import { IdeaCard, ALL_CATEGORIES, CardCategory, Project, ViewMode, IdeaSet, StoryQuestion, User, CategoryDefinition } from './types';
 import { getCards, saveCard, saveCards, createNewCard, getProjects, saveProject, getTheme, saveTheme, Theme, getSets, saveSet, deleteSet, getStoryQuestions, saveStoryQuestion, deleteStoryQuestion, setStorageNamespace } from './services/storageService';
-import { setStorageNamespace as setCategoryNamespace } from './services/categoryService';
+import { setStorageNamespace as setCategoryNamespace, getCategoriesForProject } from './services/categoryService';
 import { getSession, logout as authLogout } from './services/authService';
 import Card from './components/Card';
 import CardEditor from './components/CardEditor';
@@ -24,12 +24,17 @@ const App: React.FC = () => {
   const [sets, setSets] = useState<IdeaSet[]>([]);
   const [questions, setQuestions] = useState<StoryQuestion[]>([]);
   const [editingCard, setEditingCard] = useState<IdeaCard | null>(null);
-  
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
   const [isViewingArchive, setIsViewingArchive] = useState(false);
   const [isQuestionsPanelOpen, setIsQuestionsPanelOpen] = useState(false);
+
+  // NEW: custom category support
+  const [customCategories, setCustomCategories] = useState<CategoryDefinition[]>([]);
+  const [isMoreDropdownOpen, setIsMoreDropdownOpen] = useState(false);
+  const moreDropdownRef = useRef<HTMLDivElement>(null);
   
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
@@ -55,6 +60,22 @@ const App: React.FC = () => {
         initDataForUser(session);
     }
     setLoadingAuth(false);
+  }, []);
+
+  // NEW: Reload custom categories when project changes
+  useEffect(() => {
+    loadCustomCategories();
+  }, [selectedProjectId]);
+
+  // NEW: Close "More" dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (moreDropdownRef.current && !moreDropdownRef.current.contains(event.target as Node)) {
+        setIsMoreDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const initDataForUser = (u: User) => {
@@ -84,6 +105,21 @@ const App: React.FC = () => {
     setProjects(getProjects());
     setSets(getSets());
     setQuestions(getStoryQuestions());
+    // NEW: Load custom categories for current project
+    loadCustomCategories();
+  };
+
+  // NEW: Load custom categories for the selected project
+  const loadCustomCategories = () => {
+    if (selectedProjectId && selectedProjectId !== 'all') {
+      const allCategories = getCategoriesForProject(selectedProjectId);
+      // Filter out system categories (those that match CardCategory enum values)
+      const systemCategoryNames = Object.values(CardCategory).map(c => c.toUpperCase());
+      const custom = allCategories.filter(cat => !systemCategoryNames.includes(cat.name.toUpperCase()));
+      setCustomCategories(custom);
+    } else {
+      setCustomCategories([]);
+    }
   };
 
   const handleAuthSuccess = (u: User) => {
@@ -265,11 +301,12 @@ const App: React.FC = () => {
 
       if (!matchesSearch) return false;
 
-      // FIX: Category Filter - "All" shows everything, specific category shows only cards with tags in that category
+      // FIX: category filtering supports custom categories
       if (selectedCategory === 'All') {
           return true; // ALL = show all cards, no filtering
       } else {
           // Only show cards that have at least one tag in the selected category
+          // Works for both system categories (enum values) and custom categories (by name)
           const tagsInCategory = card.tags[selectedCategory as CardCategory];
           return tagsInCategory && tagsInCategory.length > 0;
       }
@@ -667,6 +704,44 @@ const App: React.FC = () => {
                             {cat}
                         </button>
                     ))}
+
+                    {/* NEW: More dropdown for custom categories */}
+                    {customCategories.length > 0 && (
+                        <div ref={moreDropdownRef} className="relative">
+                            <button
+                                onClick={() => setIsMoreDropdownOpen(!isMoreDropdownOpen)}
+                                className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-widest transition-all duration-300 border flex items-center gap-1 ${
+                                    customCategories.some(cat => cat.name === selectedCategory)
+                                        ? 'bg-stone-900 dark:bg-white text-white dark:text-black border-stone-900 dark:border-white shadow-md transform scale-105'
+                                        : 'bg-white dark:bg-night-surface text-stone-500 dark:text-stone-400 border-transparent hover:bg-stone-100 dark:hover:bg-white/5 hover:text-stone-800 dark:hover:text-stone-200'
+                                }`}
+                            >
+                                <MoreHorizontal size={12} />
+                                More
+                            </button>
+
+                            {isMoreDropdownOpen && (
+                                <div className="absolute top-full mt-2 left-0 bg-white dark:bg-night-surface border border-stone-200 dark:border-white/10 rounded-lg shadow-xl z-50 min-w-[12rem] py-2 animate-enter">
+                                    {customCategories.map(cat => (
+                                        <button
+                                            key={cat.id}
+                                            onClick={() => {
+                                                setSelectedCategory(cat.name);
+                                                setIsMoreDropdownOpen(false);
+                                            }}
+                                            className={`w-full text-left px-4 py-2 text-xs font-bold uppercase tracking-wide transition-colors ${
+                                                selectedCategory === cat.name
+                                                    ? 'bg-stone-100 dark:bg-white/10 text-stone-900 dark:text-white'
+                                                    : 'text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-white/5 hover:text-stone-900 dark:hover:text-white'
+                                            }`}
+                                        >
+                                            {cat.name}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
@@ -813,7 +888,7 @@ const App: React.FC = () => {
 
       {/* Editor Modal */}
       {editingCard && (
-        <CardEditor 
+        <CardEditor
             card={editingCard}
             allCards={cards}
             isDarkMode={theme === 'dark'}
@@ -823,6 +898,7 @@ const App: React.FC = () => {
             onSwitchCard={(c) => {
                 setEditingCard(c); // Switch editor to the linked card
             }}
+            onCategoriesChanged={loadCustomCategories} // NEW: Refresh custom categories when changed
         />
       )}
     </div>

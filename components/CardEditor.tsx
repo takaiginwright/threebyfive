@@ -13,11 +13,12 @@ interface CardEditorProps {
   isDarkMode: boolean;
   onSave: (card: IdeaCard) => void;
   onClose: () => void;
-  onDelete: (id: string) => void; 
-  onSwitchCard: (card: IdeaCard) => void; 
+  onDelete: (id: string) => void;
+  onSwitchCard: (card: IdeaCard) => void;
+  onCategoriesChanged?: () => void; // NEW: callback when categories are modified
 }
 
-const CardEditor: React.FC<CardEditorProps> = ({ card, allCards, isDarkMode, onSave, onClose, onDelete, onSwitchCard }) => {
+const CardEditor: React.FC<CardEditorProps> = ({ card, allCards, isDarkMode, onSave, onClose, onDelete, onSwitchCard, onCategoriesChanged }) => {
   const [editedCard, setEditedCard] = useState<IdeaCard>({ ...card, media: card.media || [], threads: card.threads || [], sets: card.sets || [], storyQuestions: card.storyQuestions || [] });
   const [isGenerating, setIsGenerating] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -126,6 +127,8 @@ const CardEditor: React.FC<CardEditorProps> = ({ card, allCards, isDarkMode, onS
       }
       setNewCategoryName('');
       setIsAddingCategory(false);
+      // NEW: notify parent that categories changed
+      onCategoriesChanged?.();
     } catch (error: any) {
       alert(error.message || 'Failed to add category');
     }
@@ -145,6 +148,8 @@ const CardEditor: React.FC<CardEditorProps> = ({ card, allCards, isDarkMode, onS
       }
       setNewSubcategoryName('');
       setIsAddingSubcategory(false);
+      // NEW: notify parent that categories changed (subcategories also affect filtering)
+      onCategoriesChanged?.();
     } catch (error: any) {
       alert(error.message || 'Failed to add subcategory');
     }
