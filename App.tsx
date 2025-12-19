@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Plus, Search, ChevronDown, Sparkles, Send, Sun, Moon, LayoutGrid, Kanban, MousePointer2, GitGraph, Layers, Trash2, Archive, HelpCircle, LogOut, User as UserIcon, MoreHorizontal } from 'lucide-react';
+import { Plus, Search, ChevronDown, Sparkles, Send, Sun, Moon, LayoutGrid, Kanban, MousePointer2, GitGraph, Layers, Trash2, Archive, HelpCircle, LogOut, User as UserIcon, MoreHorizontal, Palette } from 'lucide-react';
 import { IdeaCard, ALL_CATEGORIES, CardCategory, Project, ViewMode, IdeaSet, StoryQuestion, User, CategoryDefinition } from './types';
 import { getCards, saveCard, saveCards, createNewCard, getProjects, saveProject, getTheme, saveTheme, Theme, getSets, saveSet, deleteSet, getStoryQuestions, saveStoryQuestion, deleteStoryQuestion, setStorageNamespace } from './services/storageService';
 import { setStorageNamespace as setCategoryNamespace, getCategoriesForProject } from './services/categoryService';
@@ -12,12 +12,29 @@ import ThreadsView from './components/ThreadsView';
 import StoryQuestionsPanel from './components/StoryQuestionsPanel';
 import AuthScreen from './components/AuthScreen';
 
+// NEW: workspace background color palette
+const WORKSPACE_COLORS = [
+  { name: 'Paper White', light: '#fafaf9', dark: '#0a0a0a' },
+  { name: 'Warm Gray', light: '#f5f5f4', dark: '#1c1917' },
+  { name: 'Stone', light: '#e7e5e4', dark: '#292524' },
+  { name: 'Soft Sand', light: '#fef3c7', dark: '#451a03' },
+  { name: 'Muted Sage', light: '#d1fae5', dark: '#064e3b' },
+  { name: 'Pale Blue', light: '#dbeafe', dark: '#172554' },
+  { name: 'Lavender Mist', light: '#ede9fe', dark: '#2e1065' },
+  { name: 'Rose Blush', light: '#ffe4e6', dark: '#4c0519' }
+];
+
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loadingAuth, setLoadingAuth] = useState(true);
 
   const [theme, setTheme] = useState<Theme>('light');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
+
+  // NEW: workspace background color control
+  const [workspaceColorIndex, setWorkspaceColorIndex] = useState<number>(0);
+  const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
+  const colorPickerRef = useRef<HTMLDivElement>(null);
   
   const [cards, setCards] = useState<IdeaCard[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -55,6 +72,12 @@ const App: React.FC = () => {
     setTheme(savedTheme);
     applyTheme(savedTheme);
 
+    // NEW: Init workspace background color
+    const savedColorIndex = localStorage.getItem('workspaceColorIndex');
+    if (savedColorIndex !== null) {
+      setWorkspaceColorIndex(parseInt(savedColorIndex, 10));
+    }
+
     // Init Session
     const session = getSession();
     if (session) {
@@ -73,6 +96,17 @@ const App: React.FC = () => {
     const handleClickOutside = (event: MouseEvent) => {
       if (moreDropdownRef.current && !moreDropdownRef.current.contains(event.target as Node)) {
         setIsMoreDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // NEW: Close color picker when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (colorPickerRef.current && !colorPickerRef.current.contains(event.target as Node)) {
+        setIsColorPickerOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -99,6 +133,19 @@ const App: React.FC = () => {
       setTheme(newTheme);
       saveTheme(newTheme);
       applyTheme(newTheme);
+  };
+
+  // NEW: workspace background color control
+  const handleWorkspaceColorChange = (index: number) => {
+    setWorkspaceColorIndex(index);
+    localStorage.setItem('workspaceColorIndex', index.toString());
+    setIsColorPickerOpen(false);
+  };
+
+  // NEW: logo reset to All + Grid view
+  const handleLogoClick = () => {
+    setSelectedCategoryId('all');
+    setViewMode('grid');
   };
 
   const refreshData = () => {
@@ -507,11 +554,16 @@ const App: React.FC = () => {
       return <AuthScreen onAuthSuccess={handleAuthSuccess} />;
   }
 
+  // NEW: Get current workspace background color
+  const workspaceColor = WORKSPACE_COLORS[workspaceColorIndex];
+  const currentWorkspaceBg = theme === 'light' ? workspaceColor.light : workspaceColor.dark;
+
   return (
-    <div 
-        className="min-h-screen pb-32 bg-stone-100 dark:bg-night-bg transition-colors duration-500"
-        onTouchStart={handleTouchStart} 
-        onTouchEnd={handleTouchEnd} 
+    <div
+        className="min-h-screen pb-32 transition-colors duration-500"
+        style={{ backgroundColor: currentWorkspaceBg }}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
         onTouchMove={handleTouchEnd} // Cancel on scroll
     >
       
@@ -529,8 +581,12 @@ const App: React.FC = () => {
                 
                 {/* Brand & Project */}
                 <div className="flex items-center gap-6">
-                    {/* New Minimal Logo: Outline + Centered Text */}
-                    <div className="relative w-14 h-9 flex items-center justify-center group cursor-pointer transition-transform hover:scale-105 duration-300">
+                    {/* NEW: logo reset to All + Grid view */}
+                    <div
+                        onClick={handleLogoClick}
+                        className="relative w-14 h-9 flex items-center justify-center group cursor-pointer transition-all hover:scale-105 hover:opacity-80 duration-300"
+                        title="Reset to All Cards"
+                    >
                         {/* Logo SVG Outline */}
                         <svg viewBox="0 0 50 30" fill="none" xmlns="http://www.w3.org/2000/svg" className="absolute inset-0 w-full h-full drop-shadow-sm">
                              {/* TL Amber */}
@@ -609,8 +665,40 @@ const App: React.FC = () => {
                 {/* Search & Actions */}
                 <div className="flex items-center gap-4 flex-1 md:justify-end">
                     
+                    {/* NEW: Workspace Color Picker */}
+                    <div className="relative shrink-0" ref={colorPickerRef}>
+                        <button
+                            onClick={() => setIsColorPickerOpen(!isColorPickerOpen)}
+                            className="p-2 rounded-full text-stone-500 hover:text-stone-900 dark:text-stone-400 dark:hover:text-white hover:bg-stone-100 dark:hover:bg-white/10 transition-all duration-300"
+                            title="Workspace Background"
+                        >
+                            <Palette size={18} />
+                        </button>
+
+                        {isColorPickerOpen && (
+                            <div className="absolute top-12 right-0 glass-panel rounded-xl shadow-cinematic p-4 w-64 z-50 animate-enter">
+                                <h3 className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-3">Workspace</h3>
+                                <div className="grid grid-cols-4 gap-2">
+                                    {WORKSPACE_COLORS.map((color, index) => (
+                                        <button
+                                            key={index}
+                                            onClick={() => handleWorkspaceColorChange(index)}
+                                            className={`h-10 rounded-lg transition-all hover:scale-110 ${
+                                                workspaceColorIndex === index
+                                                    ? 'ring-2 ring-stone-900 dark:ring-white ring-offset-2 ring-offset-white dark:ring-offset-night-surface'
+                                                    : ''
+                                            }`}
+                                            style={{ backgroundColor: theme === 'light' ? color.light : color.dark }}
+                                            title={color.name}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
                     {/* Dark Mode Toggle */}
-                    <button 
+                    <button
                         onClick={toggleTheme}
                         className="shrink-0 p-2 rounded-full text-stone-500 hover:text-stone-900 dark:text-stone-400 dark:hover:text-white hover:bg-stone-100 dark:hover:bg-white/10 transition-all duration-300"
                         title={theme === 'light' ? 'Switch to Night Mode' : 'Switch to Light Mode'}
