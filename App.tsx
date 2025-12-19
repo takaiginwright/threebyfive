@@ -582,9 +582,9 @@ const App: React.FC = () => {
           </div>
       )}
 
-      <nav className="sticky top-0 z-40 px-4 py-4 md:py-6">
+      <nav className="sticky top-0 z-40 px-4 py-2 md:py-6">
         <div className="max-w-screen-2xl mx-auto">
-            <div className="glass-panel rounded-xl px-6 py-4 shadow-cinematic flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:shadow-cinematic-hover">
+            <div className="glass-panel rounded-xl px-4 py-3 md:px-6 md:py-4 shadow-cinematic flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4 transition-all hover:shadow-cinematic-hover">
 
                 <div className="flex items-center gap-6">
                     <div
@@ -658,60 +658,16 @@ const App: React.FC = () => {
                     </button>
                 </div>
 
-                <div className="flex items-center gap-4 flex-1 md:justify-end">
+                <div className="flex items-center gap-2 md:gap-4 flex-1 md:justify-end">
 
-                    {/* NEW: Atmosphere dropdown */}
-                    <div className="relative shrink-0" ref={atmosphereRef}>
-                        <button
-                            onClick={() => setIsAtmosphereOpen(!isAtmosphereOpen)}
-                            className="p-2 rounded-full text-stone-500 hover:text-stone-900 dark:text-stone-400 dark:hover:text-white hover:bg-stone-100 dark:hover:bg-white/10 transition-all duration-300"
-                            title="Atmosphere"
-                        >
-                            <Palette size={18} />
-                        </button>
-
-                        {isAtmosphereOpen && (
-                            <div className="absolute top-12 right-0 glass-panel rounded-xl shadow-cinematic w-64 z-50 animate-enter overflow-hidden">
-                                <div className="p-4 border-b border-stone-200 dark:border-white/10">
-                                    <h3 className="text-[10px] font-bold uppercase tracking-widest text-stone-400">Atmosphere</h3>
-                                </div>
-                                <div className="py-2">
-                                    {currentAtmospheres.map((atm) => (
-                                        <button
-                                            key={atm.name}
-                                            onClick={() => handleAtmosphereSelect(atm.name)}
-                                            className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-stone-50 dark:hover:bg-white/5 transition-colors"
-                                        >
-                                            <div
-                                                className="w-6 h-6 rounded-full border-2 border-stone-200 dark:border-white/20"
-                                                style={{ backgroundColor: atm.color }}
-                                            />
-                                            <span className="flex-1 text-left text-sm font-medium text-stone-700 dark:text-stone-300">
-                                                {atm.name}
-                                            </span>
-                                            {selectedAtmosphere === atm.name && (
-                                                <Check size={16} className="text-stone-900 dark:text-white" />
-                                            )}
-                                        </button>
-                                    ))}
-                                </div>
-                                <div className="border-t border-stone-200 dark:border-white/10">
-                                    <button
-                                        onClick={() => {
-                                            setIsAtmosphereOpen(false);
-                                            setIsCategoryColorsOpen(true);
-                                        }}
-                                        className="w-full flex items-center justify-center gap-2 px-4 py-3 hover:bg-stone-50 dark:hover:bg-white/5 transition-colors"
-                                    >
-                                        <Sliders size={14} className="text-stone-500 dark:text-stone-400" />
-                                        <span className="text-[10px] font-bold uppercase tracking-widest text-stone-600 dark:text-stone-400">
-                                            Category Colors
-                                        </span>
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                    </div>
+                    {/* NEW: Atmosphere button */}
+                    <button
+                        onClick={() => setIsAtmosphereOpen(!isAtmosphereOpen)}
+                        className="shrink-0 p-2 rounded-full text-stone-500 hover:text-stone-900 dark:text-stone-400 dark:hover:text-white hover:bg-stone-100 dark:hover:bg-white/10 transition-all duration-300"
+                        title="Atmosphere"
+                    >
+                        <Palette size={18} />
+                    </button>
 
                     <button
                         onClick={toggleTheme}
@@ -795,7 +751,7 @@ const App: React.FC = () => {
                 />
             )}
 
-            <div className="mt-6 flex flex-col md:flex-row gap-4 items-start md:items-center">
+            <div className="mt-4 md:mt-6 flex flex-col md:flex-row gap-3 md:gap-4 items-start md:items-center">
                 <div className="flex lg:hidden items-center p-1 bg-white/50 dark:bg-white/5 rounded-lg border border-stone-200 dark:border-white/10 w-full md:w-auto justify-between">
                     <button
                         onClick={() => setViewMode('grid')}
@@ -823,10 +779,10 @@ const App: React.FC = () => {
                     </button>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2 px-1">
+                <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide w-full md:flex-wrap md:overflow-visible px-1 -mx-1">
                     <button
                         onClick={() => setSelectedCategoryId('all')}
-                        className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-widest transition-all duration-300 border ${selectedCategoryId === 'all' ? 'bg-stone-900 dark:bg-white text-white dark:text-black border-stone-900 dark:border-white shadow-md transform scale-105' : 'bg-white dark:bg-night-surface text-stone-500 dark:text-stone-400 border-transparent hover:bg-stone-100 dark:hover:bg-white/5 hover:text-stone-800 dark:hover:text-stone-200'}`}
+                        className={`shrink-0 px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-widest transition-all duration-300 border ${selectedCategoryId === 'all' ? 'bg-stone-900 dark:bg-white text-white dark:text-black border-stone-900 dark:border-white shadow-md transform scale-105' : 'bg-white dark:bg-night-surface text-stone-500 dark:text-stone-400 border-transparent hover:bg-stone-100 dark:hover:bg-white/5 hover:text-stone-800 dark:hover:text-stone-200'}`}
                     >
                         All
                     </button>
@@ -837,7 +793,7 @@ const App: React.FC = () => {
                             <button
                                 key={cat}
                                 onClick={() => setSelectedCategoryId(categoryId)}
-                                className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-widest transition-all duration-300 border-2 ${
+                                className={`shrink-0 px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-widest transition-all duration-300 border-2 ${
                                     selectedCategoryId === categoryId
                                         ? 'bg-white dark:bg-night-surface shadow-md transform scale-105'
                                         : 'bg-white dark:bg-night-surface hover:bg-stone-50 dark:hover:bg-white/5'
@@ -853,7 +809,7 @@ const App: React.FC = () => {
                     })}
 
                     {customCategories.length > 0 && (
-                        <div ref={moreDropdownRef} className="relative">
+                        <div ref={moreDropdownRef} className="relative shrink-0">
                             <button
                                 onClick={() => setIsMoreDropdownOpen(!isMoreDropdownOpen)}
                                 className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-widest transition-all duration-300 border flex items-center gap-1 ${
@@ -1130,6 +1086,107 @@ const App: React.FC = () => {
                   </div>
               </div>
           </div>
+      )}
+
+      {/* NEW: Atmosphere Menu - Desktop dropdown, Mobile bottom sheet */}
+      {isAtmosphereOpen && (
+          <>
+              {/* Desktop: Dropdown */}
+              <div ref={atmosphereRef} className="hidden md:block fixed inset-0 z-50 pointer-events-none">
+                  <div className="absolute top-24 right-8 glass-panel rounded-xl shadow-cinematic w-64 pointer-events-auto animate-enter overflow-hidden">
+                      <div className="p-4 border-b border-stone-200 dark:border-white/10">
+                          <h3 className="text-[10px] font-bold uppercase tracking-widest text-stone-400">Atmosphere</h3>
+                      </div>
+                      <div className="py-2">
+                          {currentAtmospheres.map((atm) => (
+                              <button
+                                  key={atm.name}
+                                  onClick={() => handleAtmosphereSelect(atm.name)}
+                                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-stone-50 dark:hover:bg-white/5 transition-colors"
+                              >
+                                  <div
+                                      className="w-6 h-6 rounded-full border-2 border-stone-200 dark:border-white/20"
+                                      style={{ backgroundColor: atm.color }}
+                                  />
+                                  <span className="flex-1 text-left text-sm font-medium text-stone-700 dark:text-stone-300">
+                                      {atm.name}
+                                  </span>
+                                  {selectedAtmosphere === atm.name && (
+                                      <Check size={16} className="text-stone-900 dark:text-white" />
+                                  )}
+                              </button>
+                          ))}
+                      </div>
+                      <div className="border-t border-stone-200 dark:border-white/10">
+                          <button
+                              onClick={() => {
+                                  setIsAtmosphereOpen(false);
+                                  setIsCategoryColorsOpen(true);
+                              }}
+                              className="w-full flex items-center justify-center gap-2 px-4 py-3 hover:bg-stone-50 dark:hover:bg-white/5 transition-colors"
+                          >
+                              <Sliders size={14} className="text-stone-500 dark:text-stone-400" />
+                              <span className="text-[10px] font-bold uppercase tracking-widest text-stone-600 dark:text-stone-400">
+                                  Category Colors
+                              </span>
+                          </button>
+                      </div>
+                  </div>
+              </div>
+
+              {/* Mobile: Bottom Sheet */}
+              <div className="md:hidden fixed inset-0 z-50 flex items-end">
+                  <div
+                      className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-enter"
+                      onClick={() => setIsAtmosphereOpen(false)}
+                  />
+                  <div className="relative w-full bg-white dark:bg-night-surface rounded-t-2xl shadow-2xl max-h-[80vh] overflow-hidden animate-slide-up">
+                      <div className="sticky top-0 bg-white dark:bg-night-surface border-b border-stone-200 dark:border-white/10 p-4 flex items-center justify-between">
+                          <h3 className="text-sm font-bold uppercase tracking-widest text-stone-700 dark:text-stone-300">Atmosphere</h3>
+                          <button
+                              onClick={() => setIsAtmosphereOpen(false)}
+                              className="p-2 -mr-2 text-stone-400 hover:text-stone-900 dark:hover:text-white"
+                          >
+                              <ChevronDown size={20} />
+                          </button>
+                      </div>
+                      <div className="overflow-y-auto max-h-[calc(80vh-120px)] py-2">
+                          {currentAtmospheres.map((atm) => (
+                              <button
+                                  key={atm.name}
+                                  onClick={() => handleAtmosphereSelect(atm.name)}
+                                  className="w-full flex items-center gap-4 px-6 py-4 hover:bg-stone-50 dark:hover:bg-white/5 transition-colors active:bg-stone-100 dark:active:bg-white/10"
+                              >
+                                  <div
+                                      className="w-8 h-8 rounded-full border-2 border-stone-200 dark:border-white/20"
+                                      style={{ backgroundColor: atm.color }}
+                                  />
+                                  <span className="flex-1 text-left text-base font-medium text-stone-700 dark:text-stone-300">
+                                      {atm.name}
+                                  </span>
+                                  {selectedAtmosphere === atm.name && (
+                                      <Check size={20} className="text-stone-900 dark:text-white" />
+                                  )}
+                              </button>
+                          ))}
+                      </div>
+                      <div className="sticky bottom-0 bg-white dark:bg-night-surface border-t border-stone-200 dark:border-white/10">
+                          <button
+                              onClick={() => {
+                                  setIsAtmosphereOpen(false);
+                                  setIsCategoryColorsOpen(true);
+                              }}
+                              className="w-full flex items-center justify-center gap-3 px-6 py-4 hover:bg-stone-50 dark:hover:bg-white/5 transition-colors"
+                          >
+                              <Sliders size={16} className="text-stone-500 dark:text-stone-400" />
+                              <span className="text-xs font-bold uppercase tracking-widest text-stone-600 dark:text-stone-400">
+                                  Category Colors
+                              </span>
+                          </button>
+                      </div>
+                  </div>
+              </div>
+          </>
       )}
 
       {editingCard && (

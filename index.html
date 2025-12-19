@@ -57,10 +57,12 @@
       }
       
       /* Remove scrollbars for cleaner UI */
-      .no-scrollbar::-webkit-scrollbar {
+      .no-scrollbar::-webkit-scrollbar,
+      .scrollbar-hide::-webkit-scrollbar {
         display: none;
       }
-      .no-scrollbar {
+      .no-scrollbar,
+      .scrollbar-hide {
         -ms-overflow-style: none;
         scrollbar-width: none;
       }
@@ -97,6 +99,14 @@
       }
       .animate-enter {
         animation: fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+
+      @keyframes slideUp {
+        from { transform: translateY(100%); }
+        to { transform: translateY(0); }
+      }
+      .animate-slide-up {
+        animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
       }
       
       /* Smooth transitions */
